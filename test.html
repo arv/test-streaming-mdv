@@ -4,40 +4,111 @@
 <script src="node_modules/clarinet/clarinet.js"></script>
 <script>
 
-var parser = exports.parser();
+function assert(b) {
+  if (!b)
+    throw Error('Assertion failed');
+}
 
-parser.onerror = function (e) {
-  // an error happened. e is the error.
-  console.log('onerror', e);
+function JsonBuilder() {
+  this.parser = exports.parser();
+  this.value = undefined;
+  this.valueStack = [];
+  this.stateStack = [];
+  this.keyStack = [];
+
+  this.parser.onerror = this.onerror.bind(this);
+  this.parser.onvalue = this.onvalue.bind(this);
+  this.parser.onopenobject = this.onopenobject.bind(this);
+  this.parser.onkey = this.onkey.bind(this);
+  this.parser.oncloseobject = this.oncloseobject.bind(this);
+  this.parser.onopenarray = this.onopenarray.bind(this);
+  this.parser.onclosearray = this.onclosearray.bind(this);
+  this.parser.onend = this.onend.bind(this);
+}
+
+JsonBuilder.prototype = {
+
+  get value_() {
+    return this.valueStack[this.valueStack.length - 1];
+  },
+
+  get state() {
+    return this.stateStack[this.stateStack.length - 1];
+  },
+
+  get key() {
+    return this.keyStack[this.keyStack.length - 1];
+  },
+
+  pushValue: function(v) {
+    if (this.valueStack.length === 0)
+      this.value = v;
+    this.valueStack.push(v);
+  },
+
+  onerror: function (e) {
+
+  },
+  onvalue: function (v) {
+    var state = this.state;
+    var value = this.value_;
+    switch (state) {
+      case 'array':
+        value.push(v);
+        break;
+      case 'key':
+        value[this.key] = v;
+        this.stateStack.pop();
+        this.keyStack.pop();
+        break;
+      case 'object':
+        throw Error('Invalid state');
+    }
+  },
+  onopenobject: function (key) {
+    var object = {};
+    this.onvalue(object);
+
+    this.pushValue(object);
+    this.stateStack.push('object');
+
+    this.stateStack.push('key');
+    this.keyStack.push(key);
+  },
+  onkey: function (key) {
+    this.keyStack.push(key);
+    this.stateStack.push('key');
+  },
+  oncloseobject: function () {
+    this.valueStack.pop();
+    assert(this.stateStack.pop() === 'object');
+  },
+  onopenarray: function () {
+    var array = [];
+    this.pushValue(array);
+    this.stateStack.push('array');
+  },
+  onclosearray: function () {
+    this.valueStack.pop();
+    assert(this.stateStack.pop() === 'array');
+  },
+  onend: function () {
+    // I don't see this one happening.
+    console.log('onend');
+  },
+
+  write: function(s) {
+    this.parser.write(s);
+  }
 };
-parser.onvalue = function (v) {
-  // got some value.  v is the value. can be string, double, bool, or null.
-  console.log('onvalue', v);
-};
-parser.onopenobject = function (key) {
-  // opened an object. key is the first key.
-  console.log('onopenobject', key);
-};
-parser.onkey = function (key) {
-  // got a key in an object.
-  console.log('onkey', key);
-};
-parser.oncloseobject = function () {
-  // closed an object.
-  console.log('oncloseobject');
-};
-parser.onopenarray = function () {
-  // opened an array.
-  console.log('onopenarray');
-};
-parser.onclosearray = function () {
-  // closed an array.
-  console.log('onclosearray');
-};
-parser.onend = function () {
-  // parser stream is done, and ready to have more stuff written to it.
-  console.log('onend');
-};
+
+
+
+</script>
+
+<script>
+
+var parser = new JsonBuilder();
 
 var xhr = new XMLHttpRequest;
 xhr.open('GET', '/feed.json');
@@ -47,8 +118,14 @@ xhr.onprogress = function() {
   console.log(newLength, xhr.responseText.slice(last, newLength));
   parser.write(xhr.responseText.slice(last, newLength));
   last = newLength;
+
+  console.log(JSON.stringify(parser.value, null, 2));
 };
 xhr.send();
 
+
+// debugger;
+// parser.write('[1, 2, {"a": 3}]');
+// console.log(parser.value)
 
 </script>

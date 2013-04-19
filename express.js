@@ -25,7 +25,7 @@ app.get('/feed.json', function(req, res) {
   res.write('[');
 
   function writeMore() {
-    if (counter > 100) {
+    if (counter > 20) {
       clearTimeout(t);
       res.end(']');
       return;
