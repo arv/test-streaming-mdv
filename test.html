@@ -1,0 +1,54 @@
+<!doctype html>
+
+<script>var exports = {};</script>
+<script src="node_modules/clarinet/clarinet.js"></script>
+<script>
+
+var parser = exports.parser();
+
+parser.onerror = function (e) {
+  // an error happened. e is the error.
+  console.log('onerror', e);
+};
+parser.onvalue = function (v) {
+  // got some value.  v is the value. can be string, double, bool, or null.
+  console.log('onvalue', v);
+};
+parser.onopenobject = function (key) {
+  // opened an object. key is the first key.
+  console.log('onopenobject', key);
+};
+parser.onkey = function (key) {
+  // got a key in an object.
+  console.log('onkey', key);
+};
+parser.oncloseobject = function () {
+  // closed an object.
+  console.log('oncloseobject');
+};
+parser.onopenarray = function () {
+  // opened an array.
+  console.log('onopenarray');
+};
+parser.onclosearray = function () {
+  // closed an array.
+  console.log('onclosearray');
+};
+parser.onend = function () {
+  // parser stream is done, and ready to have more stuff written to it.
+  console.log('onend');
+};
+
+var xhr = new XMLHttpRequest;
+xhr.open('GET', '/feed.json');
+var last = 0;
+xhr.onprogress = function() {
+  var newLength = xhr.responseText.length;
+  console.log(newLength, xhr.responseText.slice(last, newLength));
+  parser.write(xhr.responseText.slice(last, newLength));
+  last = newLength;
+};
+xhr.send();
+
+
+</script>
