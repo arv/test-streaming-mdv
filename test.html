@@ -4,6 +4,8 @@
 <script src="node_modules/clarinet/clarinet.js"></script>
 <script>
 
+'use strict';
+
 function assert(b) {
   if (!b)
     throw Error('Assertion failed');
@@ -13,7 +15,7 @@ function JsonBuilder() {
   this.parser = exports.parser();
   this.value = undefined;
   this.valueStack = [];
-  this.stateStack = [];
+  this.stateStack = ['begin'];
   this.keyStack = [];
 
   this.parser.onerror = this.onerror.bind(this);
@@ -41,8 +43,8 @@ JsonBuilder.prototype = {
   },
 
   pushValue: function(v) {
-    if (this.valueStack.length === 0)
-      this.value = v;
+    // if (this.valueStack.length === 0)
+    //   this.value = v;
     this.valueStack.push(v);
   },
 
@@ -53,6 +55,9 @@ JsonBuilder.prototype = {
     var state = this.state;
     var value = this.value_;
     switch (state) {
+      case 'begin':
+        this.value = v;
+        break;
       case 'array':
         value.push(v);
         break;
@@ -61,7 +66,7 @@ JsonBuilder.prototype = {
         this.stateStack.pop();
         this.keyStack.pop();
         break;
-      case 'object':
+      default:
         throw Error('Invalid state');
     }
   },
@@ -85,6 +90,8 @@ JsonBuilder.prototype = {
   },
   onopenarray: function () {
     var array = [];
+    this.onvalue(array);
+
     this.pushValue(array);
     this.stateStack.push('array');
   },
@@ -125,7 +132,8 @@ xhr.send();
 
 
 // debugger;
-// parser.write('[1, 2, {"a": 3}]');
-// console.log(parser.value)
+// // parser.write('{"a": 3, "b": true}');
+// parser.write('[[[0, {"a": 3, "b": true}]]]');
+// console.log(JSON.stringify(parser.value));
 
 </script>
