@@ -1,0 +1,3 @@
+[submodule "mdv"]
+	path = mdv
+	url = git@github.com:toolkitchen/mdv.git

@@ -1,119 +1,48 @@
 <!doctype html>
+<style>
 
+.item {
+  display: inline-block;
+  width: 100px;
+  height: 100px;
+  transition: background-color .3s;
+  font-family: sans-serif;;
+  text-align: center;
+  line-height: 100px;
+}
+
+.item:hover {
+  background-color: whitesmoke;
+}
+
+</style>
+<script src="mdv/mdv.js"></script>
 <script>var exports = {};</script>
 <script src="node_modules/clarinet/clarinet.js"></script>
 <script>
+var CParser = exports.CParser;
+</script>
+<script src="JsonBuilder.js"></script>
+<script>
 
-'use strict';
-
-function assert(b) {
-  if (!b)
-    throw Error('Assertion failed');
-}
-
-function JsonBuilder() {
-  this.parser = exports.parser();
-  this.value = undefined;
-  this.valueStack = [];
-  this.stateStack = ['begin'];
-  this.keyStack = [];
-
-  this.parser.onerror = this.onerror.bind(this);
-  this.parser.onvalue = this.onvalue.bind(this);
-  this.parser.onopenobject = this.onopenobject.bind(this);
-  this.parser.onkey = this.onkey.bind(this);
-  this.parser.oncloseobject = this.oncloseobject.bind(this);
-  this.parser.onopenarray = this.onopenarray.bind(this);
-  this.parser.onclosearray = this.onclosearray.bind(this);
-  this.parser.onend = this.onend.bind(this);
-}
-
-JsonBuilder.prototype = {
-
-  get value_() {
-    return this.valueStack[this.valueStack.length - 1];
-  },
-
-  get state() {
-    return this.stateStack[this.stateStack.length - 1];
-  },
-
-  get key() {
-    return this.keyStack[this.keyStack.length - 1];
-  },
-
-  pushValue: function(v) {
-    // if (this.valueStack.length === 0)
-    //   this.value = v;
-    this.valueStack.push(v);
-  },
-
-  onerror: function (e) {
-
-  },
-  onvalue: function (v) {
-    var state = this.state;
-    var value = this.value_;
-    switch (state) {
-      case 'begin':
-        this.value = v;
-        break;
-      case 'array':
-        value.push(v);
-        break;
-      case 'key':
-        value[this.key] = v;
-        this.stateStack.pop();
-        this.keyStack.pop();
-        break;
-      default:
-        throw Error('Invalid state');
-    }
-  },
-  onopenobject: function (key) {
-    var object = {};
-    this.onvalue(object);
-
-    this.pushValue(object);
-    this.stateStack.push('object');
-
-    this.stateStack.push('key');
-    this.keyStack.push(key);
-  },
-  onkey: function (key) {
-    this.keyStack.push(key);
-    this.stateStack.push('key');
-  },
-  oncloseobject: function () {
-    this.valueStack.pop();
-    assert(this.stateStack.pop() === 'object');
-  },
-  onopenarray: function () {
-    var array = [];
-    this.onvalue(array);
-
-    this.pushValue(array);
-    this.stateStack.push('array');
-  },
-  onclosearray: function () {
-    this.valueStack.pop();
-    assert(this.stateStack.pop() === 'array');
-  },
-  onend: function () {
-    // I don't see this one happening.
-    console.log('onend');
-  },
-
-  write: function(s) {
-    this.parser.write(s);
+HTMLTemplateElement.syntax['NowAsDate'] = {
+  getBinding: function(model, path, name, node) {
+    // The magic happens here!
+    if (path === 'now')
+      return {value: new Date(model.now).toLocaleTimeString()};
   }
 };
 
-
-
 </script>
+<body>
+
+<template repeat="{{value}}" syntax="NowAsDate">
+  <div class="item" title="Sent at {{now}}">Item {{counter}}</div>
+</template>
 
 <script>
+
+'use strict';
 
 var parser = new JsonBuilder();
 
@@ -122,18 +51,15 @@ xhr.open('GET', '/feed.json');
 var last = 0;
 xhr.onprogress = function() {
   var newLength = xhr.responseText.length;
-  console.log(newLength, xhr.responseText.slice(last, newLength));
   parser.write(xhr.responseText.slice(last, newLength));
   last = newLength;
-
-  console.log(JSON.stringify(parser.value, null, 2));
+  Model.notifyChanges();
 };
 xhr.send();
 
-
-// debugger;
-// // parser.write('{"a": 3, "b": true}');
-// parser.write('[[[0, {"a": 3, "b": true}]]]');
-// console.log(JSON.stringify(parser.value));
+var t = document.querySelector('template');
+t.model = parser;
 
 </script>
+</template>
+</body>

@@ -25,24 +25,24 @@ app.get('/feed.json', function(req, res) {
   res.write('[');
 
   function writeMore() {
-    if (counter > 20) {
+    if (counter >= 1000) {
       clearTimeout(t);
       res.end(']');
       return;
     }
 
-    if (counter++ > 0)
+    if (counter > 0)
       res.write(',');
 
     var obj = {
-      counter: counter,
+      counter: counter++,
       now: Date.now()
     };
 
     res.write(JSON.stringify(obj));
   }
 
-  var t = setInterval(writeMore, 500);
+  var t = setInterval(writeMore, 50);
 
 });
 
