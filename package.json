@@ -3,6 +3,6 @@
   "version": "0.0.1",
   "dependencies": {
     "express": "*",
-    "clarinett": "git://github.com/dscape/clarinet.git",
+    "clarinett": "git://github.com/dscape/clarinet.git"
   }
 }
